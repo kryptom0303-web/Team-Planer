@@ -12,8 +12,18 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 export default function TeamPlanerApp() {
   const [events, setEvents] = useState([]);
+  
+  // Neue States für Mitarbeiter-Liste und Auswahl
+  const [mitarbeiterListe] = useState([
+    'Tom',
+    'Baumi',
+    'Schocki',
+    'Marco',
+    'Regine'
+  ]);
+  const [selectedMitarbeiter, setSelectedMitarbeiter] = useState('');
+  const [selectedStatus, setSelectedStatus] = useState('Home-Office');
 
-  // Daten beim Laden der Seite aus der Supabase-Datenbank abrufen
   useEffect(() => {
     const fetchEvents = async () => {
       const { data, error } = await supabase.from('events').select('*');
@@ -26,46 +36,100 @@ export default function TeamPlanerApp() {
     fetchEvents();
   }, []);
 
-  // Funktion: Neuen Termin per Klick im Kalender eintragen
   const handleDateSelect = async (selectInfo) => {
-    let title = prompt('Bitte Status eingeben (z.B. Max Mustermann: Home-Office)');
-    
-    if (title) {
-      let calendarApi = selectInfo.view.calendar;
-      calendarApi.unselect(); // Auswahl aufheben
+    // Sicherstellen, dass ein Mitarbeiter ausgewählt wurde
+    if (!selectedMitarbeiter) {
+      alert('Bitte wähle zuerst einen Mitarbeiter aus der Liste aus!');
+      return;
+    }
 
-      // Farbe anhand des Textes bestimmen
-      let color = '#3b82f6'; // Standard: Blau (Home-Office)
-      if (title.toLowerCase().includes('urlaub')) {
-        color = '#eab308'; // Gelb für Urlaub
-      } else if (title.toLowerCase().includes('büro')) {
-        color = '#22c55e'; // Grün für Büro
-      }
+    let title = `${selectedMitarbeiter}: ${selectedStatus}`;
+    let calendarApi = selectInfo.view.calendar;
+    calendarApi.unselect();
 
-      const newEvent = {
-        title,
-        start: selectInfo.startStr,
-        end: selectInfo.endStr,
-        color: color,
-        all_day: selectInfo.allDay,
-      };
+    // Farbe anhand des Status bestimmen
+    let color = '#3b82f6'; // Blau für Home-Office
+    if (selectedStatus === 'Urlaub') {
+      color = '#eab308'; // Gelb für Urlaub
+    } else if (selectedStatus === 'Büro') {
+      color = '#22c55e'; // Grün für Büro
+    }
 
-      // In Supabase-Datenbank speichern
-      const { data, error } = await supabase.from('events').insert([newEvent]).select();
+    const newEvent = {
+      title,
+      start: selectInfo.startStr,
+      end: selectInfo.endStr,
+      color: color,
+      all_day: selectInfo.allDay,
+    };
 
-      if (error) {
-        alert('Fehler beim Speichern: ' + error.message);
-      } else if (data) {
-        setEvents([...events, data[0]]);
-        window.location.reload(); // Zur Sicherheit neu laden, damit alle es sehen
-      }
+    const { data, error } = await supabase.from('events').insert([newEvent]).select();
+
+    if (error) {
+      alert('Fehler beim Speichern: ' + error.message);
+    } else if (data) {
+      setEvents([...events, data[0]]);
+      // Auswahl zurücksetzen und Seite aktualisieren
+      setSelectedMitarbeiter('');
+      window.location.reload(); 
     }
   };
 
   return (
     <div style={{ padding: '20px', fontFamily: 'sans-serif' }}>
       <h1>Team-Präsenz Planer</h1>
-      <p>Tippe auf einen Tag oder ziehe einen Bereich, um deinen Status einzutragen.</p>
+      
+      {/* Auswahlbereich für den Mitarbeiter und den Status */}
+      <div style={{ marginBottom: '25px', display: 'flex', flexDirection: 'column', gap: '15px', maxWidth: '450px' }}>
+        <div>
+          <label style={{ fontWeight: 'bold', display: 'block', marginBottom: '5px' }}>
+            Mitarbeiter auswählen:
+          </label>
+          <select
+            value={selectedMitarbeiter}
+            onChange={(e) => setSelectedMitarbeiter(e.target.value)}
+            style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
+          >
+            <option value="">-- Bitte wählen --</option>
+            {mitarbeiterListe.map((name, index) => (
+              <option key={index} value={name}>
+                {name}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div>
+          <label style={{ fontWeight: 'bold', display: 'block', marginBottom: '8px' }}>
+            Status:
+          </label>
+          <div style={{ display: 'flex', gap: '8px' }}>
+            {['Home-Office', 'Büro', 'Urlaub'].map((status) => (
+              <button
+                key={status}
+                type="button"
+                onClick={() => setSelectedStatus(status)}
+                style={{
+                  padding: '8px 12px',
+                  borderRadius: '6px',
+                  border: 'none',
+                  cursor: 'pointer',
+                  fontWeight: selectedStatus === status ? 'bold' : 'normal',
+                  backgroundColor: 
+                    status === 'Home-Office' ? (selectedStatus === status ? '#3b82f6' : '#e0e7ff') :
+                    status === 'Büro' ? (selectedStatus === status ? '#22c55e' : '#dcfce7') :
+                    (selectedStatus === status ? '#eab308' : '#fef9c3'),
+                  color: selectedStatus === status ? '#fff' : '#1f2937',
+                }}
+              >
+                {status}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <p>Wähle ein Datum oder einen Zeitraum im Kalender aus, um den Eintrag mit diesen Daten zu speichern.</p>
 
       <div className="calendar-container">
         <FullCalendar
