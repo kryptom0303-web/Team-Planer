@@ -10,6 +10,8 @@ const SUPABASE_URL = 'https://fkiinkmzervdbocbznip.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZraWlua216ZXJ2ZGJvY2J6bmlwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc0ODM3ODksImV4cCI6MjA5MzA1OTc4OX0.YvG6U8Mz7PHGGwTMDAATXFFpfTTLPmnq6F11NRLI1GQ';
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
+
+
 export default function TeamPlanerApp() {
   const [events, setEvents] = useState([]);
   
@@ -21,8 +23,30 @@ export default function TeamPlanerApp() {
     'Marco',
     'Regine'
   ]);
-  const [selectedMitarbeiter, setSelectedMitarbeiter] = useState('');
-  const [selectedStatus, setSelectedStatus] = useState('Home-Office');
+  //const [selectedMitarbeiter, setSelectedMitarbeiter] = useState('');
+  const [selectedMitarbeiter, setSelectedMitarbeiter] = useState(() => {
+    return localStorage.getItem('selectedMitarbeiter') || '';
+  });
+
+  // Speichere den Wert automatisch, wenn er sich ändert
+  useEffect(() => {
+    if (selectedMitarbeiter) {
+      localStorage.setItem('selectedMitarbeiter', selectedMitarbeiter);
+    } else {
+      localStorage.removeItem('selectedMitarbeiter');
+    }
+  }, [selectedMitarbeiter]);
+  
+  //const [selectedStatus, setSelectedStatus] = useState('Home-Office');
+const [selectedStatus, setSelectedStatus] = useState(() => {
+    return localStorage.getItem('selectedStatus') || 'Home-Office';
+  });
+
+  useEffect(() => {
+    localStorage.setItem('selectedStatus', selectedStatus);
+  }, [selectedStatus]);
+
+
 
   useEffect(() => {
     const fetchEvents = async () => {
@@ -70,7 +94,7 @@ export default function TeamPlanerApp() {
     } else if (data) {
       setEvents([...events, data[0]]);
       // Auswahl zurücksetzen und Seite aktualisieren
-      setSelectedMitarbeiter('');
+      //setSelectedMitarbeiter('');
       window.location.reload(); 
     }
   };
