@@ -5,30 +5,34 @@ import interactionPlugin from '@fullcalendar/interaction';
 import timeGridPlugin from '@fullcalendar/timegrid';
 import { createClient } from '@supabase/supabase-js';
 
-// Hier deine Daten aus dem Supabase-Dashboard eintragen
-const SUPABASE_URL = 'https://fkiinkmzervdbocbznip.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZraWlua216ZXJ2ZGJvY2J6bmlwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc0ODM3ODksImV4cCI6MjA5MzA1OTc4OX0.YvG6U8Mz7PHGGwTMDAATXFFpfTTLPmnq6F11NRLI1GQ';
-const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
-
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
+const supabase = createClient(SUPABASE_URL, SUPABASE_ANONKEY);
 
 export default function TeamPlanerApp() {
   const [events, setEvents] = useState([]);
   
-  // Neue States für Mitarbeiter-Liste und Auswahl
   const [mitarbeiterListe] = useState([
-    'Tom',
-    'Baumi',
-    'Schocki',
-    'Marco',
-    'Regine'
+    'Anna',
+    'Ben',
+    'Christian',
+    'Sarah',
+    'David'
   ]);
-  //const [selectedMitarbeiter, setSelectedMitarbeiter] = useState('');
+
+  // Mitarbeiter-Auswahl bleibt gespeichert
   const [selectedMitarbeiter, setSelectedMitarbeiter] = useState(() => {
     return localStorage.getItem('selectedMitarbeiter') || '';
   });
 
-  // Speichere den Wert automatisch, wenn er sich ändert
+  // Status-Auswahl bleibt gespeichert
+  const [selectedStatus, setSelectedStatus] = useState(() => {
+    return localStorage.getItem('selectedStatus') || 'Home-Office';
+  });
+
+  // Arbeitszeit-Auswahl
+  const [selectedZeit, setSelectedZeit] = useState('bis 16:00 Uhr');
+
   useEffect(() => {
     if (selectedMitarbeiter) {
       localStorage.setItem('selectedMitarbeiter', selectedMitarbeiter);
@@ -36,17 +40,10 @@ export default function TeamPlanerApp() {
       localStorage.removeItem('selectedMitarbeiter');
     }
   }, [selectedMitarbeiter]);
-  
-  //const [selectedStatus, setSelectedStatus] = useState('Home-Office');
-const [selectedStatus, setSelectedStatus] = useState(() => {
-    return localStorage.getItem('selectedStatus') || 'Home-Office';
-  });
 
   useEffect(() => {
     localStorage.setItem('selectedStatus', selectedStatus);
   }, [selectedStatus]);
-
-
 
   useEffect(() => {
     const fetchEvents = async () => {
@@ -61,17 +58,15 @@ const [selectedStatus, setSelectedStatus] = useState(() => {
   }, []);
 
   const handleDateSelect = async (selectInfo) => {
-    // Sicherstellen, dass ein Mitarbeiter ausgewählt wurde
     if (!selectedMitarbeiter) {
       alert('Bitte wähle zuerst einen Mitarbeiter aus der Liste aus!');
       return;
     }
 
-    let title = `${selectedMitarbeiter}: ${selectedStatus}`;
+    let title = `${selectedMitarbeiter}: ${selectedStatus} (${selectedZeit})`;
     let calendarApi = selectInfo.view.calendar;
     calendarApi.unselect();
 
-    // Farbe anhand des Status bestimmen
     let color = '#3b82f6'; // Blau für Home-Office
     if (selectedStatus === 'Urlaub') {
       color = '#eab308'; // Gelb für Urlaub
@@ -93,8 +88,6 @@ const [selectedStatus, setSelectedStatus] = useState(() => {
       alert('Fehler beim Speichern: ' + error.message);
     } else if (data) {
       setEvents([...events, data[0]]);
-      // Auswahl zurücksetzen und Seite aktualisieren
-      //setSelectedMitarbeiter('');
       window.location.reload(); 
     }
   };
@@ -103,7 +96,7 @@ const [selectedStatus, setSelectedStatus] = useState(() => {
     <div style={{ padding: '20px', fontFamily: 'sans-serif' }}>
       <h1>Team-Präsenz Planer</h1>
       
-      {/* Auswahlbereich für den Mitarbeiter und den Status */}
+      {/* Auswahlbereich */}
       <div style={{ marginBottom: '25px', display: 'flex', flexDirection: 'column', gap: '15px', maxWidth: '450px' }}>
         <div>
           <label style={{ fontWeight: 'bold', display: 'block', marginBottom: '5px' }}>
@@ -127,7 +120,7 @@ const [selectedStatus, setSelectedStatus] = useState(() => {
           <label style={{ fontWeight: 'bold', display: 'block', marginBottom: '8px' }}>
             Status:
           </label>
-          <div style={{ display: 'flex', gap: '8px' }}>
+          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
             {['Home-Office', 'Büro', 'Urlaub'].map((status) => (
               <button
                 key={status}
@@ -151,10 +144,25 @@ const [selectedStatus, setSelectedStatus] = useState(() => {
             ))}
           </div>
         </div>
+
+        <div>
+          <label style={{ fontWeight: 'bold', display: 'block', marginBottom: '5px' }}>
+            Arbeitszeit:
+          </label>
+          <select
+            value={selectedZeit}
+            onChange={(e) => setSelectedZeit(e.target.value)}
+            style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
+          >
+            <option value="bis 16:00 Uhr">bis 16:00 Uhr</option>
+            <option value="Verkürzt (früher heim)">Verkürzt (früher heim)</option>
+          </select>
+        </div>
       </div>
 
       <p>Wähle ein Datum oder einen Zeitraum im Kalender aus, um den Eintrag mit diesen Daten zu speichern.</p>
 
+      {/* Kalender */}
       <div className="calendar-container">
         <FullCalendar
           plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
@@ -173,6 +181,35 @@ const [selectedStatus, setSelectedStatus] = useState(() => {
           select={handleDateSelect}
           locale="de"
         />
+      </div>
+
+      {/* Wochenübersicht */}
+      <div style={{ marginTop: '30px', background: '#fff', padding: '15px', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
+        <h2>Wochenübersicht (Aktuelle Woche)</h2>
+        <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+          <thead>
+            <tr style={{ borderBottom: '1px solid #ccc' }}>
+              <th style={{ padding: '8px' }}>Mitarbeiter</th>
+              <th style={{ padding: '8px' }}>Montag</th>
+              <th style={{ padding: '8px' }}>Dienstag</th>
+              <th style={{ padding: '8px' }}>Mittwoch</th>
+              <th style={{ padding: '8px' }}>Donnerstag</th>
+              <th style={{ padding: '8px' }}>Freitag</th>
+            </tr>
+          </thead>
+          <tbody>
+            {mitarbeiterListe.map((name) => (
+              <tr key={name} style={{ borderBottom: '1px solid #eee' }}>
+                <td style={{ padding: '8px', fontWeight: 'bold' }}>{name}</td>
+                <td style={{ padding: '8px' }}>-</td>
+                <td style={{ padding: '8px' }}>-</td>
+                <td style={{ padding: '8px' }}>-</td>
+                <td style={{ padding: '8px' }}>-</td>
+                <td style={{ padding: '8px' }}>-</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
 
       <style jsx>{`
