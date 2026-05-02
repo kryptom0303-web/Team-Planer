@@ -103,7 +103,7 @@ const [selectedStatus, setSelectedStatus] = useState(() => {
     <div style={{ padding: '20px', fontFamily: 'sans-serif' }}>
       <h1>Team-Präsenz Planer</h1>
       
-      {/* Auswahlbereich für den Mitarbeiter und den Status */}
+      {/* Auswahlbereich für den Mitarbeiter und den Status -- - -  */}
       <div style={{ marginBottom: '25px', display: 'flex', flexDirection: 'column', gap: '15px', maxWidth: '450px' }}>
         <div>
           <label style={{ fontWeight: 'bold', display: 'block', marginBottom: '5px' }}>
