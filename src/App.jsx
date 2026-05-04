@@ -13,11 +13,11 @@ export default function TeamPlanerApp() {
   const [events, setEvents] = useState([]);
   
   const [mitarbeiterListe] = useState([
-    'Anna',
-    'Ben',
-    'Christian',
-    'Sarah',
-    'David'
+    'Tom',
+    'Baumi',
+    'Schocki',
+    'Marco',
+    'Regine'
   ]);
 
   // Mitarbeiter-Auswahl bleibt gespeichert
