@@ -43,7 +43,7 @@ export default function TeamPlanerApp() {
   // Arbeitszeit-Auswahl
   const [selectedZeit, setSelectedZeit] = useState('bis 16:00 Uhr');
   
-  // Neuer State für den Wochen-Sprung
+  // State für den Wochen-Sprung
   const [weekOffset, setWeekOffset] = useState(0);
 
   useEffect(() => {
@@ -77,8 +77,8 @@ export default function TeamPlanerApp() {
     }
 
     let title = `${selectedMitarbeiter}: ${selectedStatus} (${selectedZeit})`;
-    let calendarApiCalendar = selectInfo.view.calendar;
-    letApiCalendar.unselect();
+    let calendarApi = selectInfo.view.calendar;
+    calendarApi.unselect();
 
     let color = '#3b82f6'; // Blau für Home-Office
     if (selectedStatus === 'Urlaub') {
