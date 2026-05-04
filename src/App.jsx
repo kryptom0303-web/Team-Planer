@@ -20,7 +20,7 @@ export default function TeamPlanerApp() {
     'Regine'
   ]);
 
-   // Mitarbeiter-Auswahl bleibt gespeichert
+  // Mitarbeiter-Auswahl bleibt gespeichert
   const [selectedMitarbeiter, setSelectedMitarbeiter] = useState(() => {
     return localStorage.getItem('selectedMitarbeiter') || '';
   });
@@ -95,34 +95,66 @@ export default function TeamPlanerApp() {
   // Funktion zum Löschen von Events
   const handleEventClick = async (clickInfo) => {
     if (window.confirm(`Möchtest du den Eintrag "${clickInfo.event.title}" wirklich löschen?`)) {
+      
+      const eventId = clickInfo.event.id;
+      const parsedId = /^\d+$/.test(eventId) ? parseInt(eventId, 10) : eventId;
+
       const { error } = await supabase
         .from('events')
         .delete()
-        .eq('id', clickInfo.event.id);
+        .eq('id', parsedId);
 
       if (error) {
+        console.error('Fehler beim Löschen in Supabase:', error);
         alert('Fehler beim Löschen: ' + error.message);
       } else {
-        // Aus dem lokalen State entfernen
-        setEvents(events.filter(e => e.id !== clickInfo.event.id));
+        setEvents(events.filter(e => e.id !== eventId));
         window.location.reload();
       }
     }
   };
 
-  // Hilfsfunktion für die Wochenübersicht
-  const getStatusForDay = (name, dayIndex) => {
+  // Hilfsfunktion zur Formatierung des Status
+  const getCellProps = (name, dayIndex) => {
     const event = events.find(e => {
       const date = new Date(e.start);
-      // getDay(): 1 = Montag, 2 = Dienstag, ... 5 = Freitag
       return e.title.startsWith(name) && date.getDay() === dayIndex;
     });
 
     if (event) {
-      // Entfernt den Namen aus dem Titel für eine kompaktere Anzeige
-      return event.title.replace(`${name}: `, '');
+      let text = event.title.replace(`${name}: `, '');
+
+      // Falls Urlaub oder Home-Office, soll der Zusatz nicht angezeigt werden
+      if (text.includes('Urlaub') || text.includes('Home-Office')) {
+        text = text.split(' (')[0]; 
+      }
+
+      // Farbliche Hinterlegung
+      let style = { padding: '8px', fontSize: '0.9rem', textAlign: 'center', fontWeight: 'bold' };
+      if (text.includes('Büro')) {
+        style = { ...style, backgroundColor: '#dcfce7', color: '#166534' }; // Grün
+      } else if (text.includes('Home-Office')) {
+        style = { ...style, backgroundColor: '#e0e7ff', color: '#1e3a8a' }; // Blau
+      } else if (text.includes('Urlaub')) {
+        style = { ...style, backgroundColor: '#fef9c3', color: '#854d0e' }; // Gelb
+      }
+
+      return { text, style };
     }
-    return '-';
+    
+    return { text: '-', style: { padding: '8px', fontSize: '0.9rem', textAlign: 'center', color: '#6b7280' } };
+  };
+
+  // Hilfsfunktion: Zählt die Personen im Büro
+  const countInOffice = (dayIndex) => {
+    let count = 0;
+    events.forEach(e => {
+      const date = new Date(e.start);
+      if (date.getDay() === dayIndex && e.title.includes('Büro')) {
+        count++;
+      }
+    });
+    return count;
   };
 
   return (
@@ -213,7 +245,7 @@ export default function TeamPlanerApp() {
           weekends={true}
           events={events}
           select={handleDateSelect}
-          eventClick={handleEventClick} // Hier wird die Löschfunktion verknüpft
+          eventClick={handleEventClick}
           locale="de"
         />
       </div>
@@ -225,24 +257,33 @@ export default function TeamPlanerApp() {
           <thead>
             <tr style={{ borderBottom: '1px solid #ccc' }}>
               <th style={{ padding: '8px' }}>Mitarbeiter</th>
-              <th style={{ padding: '8px' }}>Montag</th>
-              <th style={{ padding: '8px' }}>Dienstag</th>
-              <th style={{ padding: '8px' }}>Mittwoch</th>
-              <th style={{ padding: '8px' }}>Donnerstag</th>
-              <th style={{ padding: '8px' }}>Freitag</th>
+              <th style={{ padding: '8px', textAlign: 'center' }}>Montag</th>
+              <th style={{ padding: '8px', textAlign: 'center' }}>Dienstag</th>
+              <th style={{ padding: '8px', textAlign: 'center' }}>Mittwoch</th>
+              <th style={{ padding: '8px', textAlign: 'center' }}>Donnerstag</th>
+              <th style={{ padding: '8px', textAlign: 'center' }}>Freitag</th>
             </tr>
           </thead>
           <tbody>
             {mitarbeiterListe.map((name) => (
               <tr key={name} style={{ borderBottom: '1px solid #eee' }}>
                 <td style={{ padding: '8px', fontWeight: 'bold' }}>{name}</td>
-                <td style={{ padding: '8px', fontSize: '0.9rem' }}>{getStatusForDay(name, 1)}</td>
-                <td style={{ padding: '8px', fontSize: '0.9rem' }}>{getStatusForDay(name, 2)}</td>
-                <td style={{ padding: '8px', fontSize: '0.9rem' }}>{getStatusForDay(name, 3)}</td>
-                <td style={{ padding: '8px', fontSize: '0.9rem' }}>{getStatusForDay(name, 4)}</td>
-                <td style={{ padding: '8px', fontSize: '0.9rem' }}>{getStatusForDay(name, 5)}</td>
+                <td style={getCellProps(name, 1).style}>{getCellProps(name, 1).text}</td>
+                <td style={getCellProps(name, 2).style}>{getCellProps(name, 2).text}</td>
+                <td style={getCellProps(name, 3).style}>{getCellProps(name, 3).text}</td>
+                <td style={getCellProps(name, 4).style}>{getCellProps(name, 4).text}</td>
+                <td style={getCellProps(name, 5).style}>{getCellProps(name, 5).text}</td>
               </tr>
             ))}
+            {/* Neue Zeile: Personen im Büro */}
+            <tr style={{ borderTop: '2px solid #ccc', fontWeight: 'bold' }}>
+              <td style={{ padding: '8px', backgroundColor: '#f9fafb' }}>Personen im Büro</td>
+              <td style={{ padding: '8px', textAlign: 'center', backgroundColor: '#dcfce7', color: '#166534' }}>{countInOffice(1)}</td>
+              <td style={{ padding: '8px', textAlign: 'center', backgroundColor: '#dcfce7', color: '#166534' }}>{countInOffice(2)}</td>
+              <td style={{ padding: '8px', textAlign: 'center', backgroundColor: '#dcfce7', color: '#166534' }}>{countInOffice(3)}</td>
+              <td style={{ padding: '8px', textAlign: 'center', backgroundColor: '#dcfce7', color: '#166534' }}>{countInOffice(4)}</td>
+              <td style={{ padding: '8px', textAlign: 'center', backgroundColor: '#dcfce7', color: '#166534' }}>{countInOffice(5)}</td>
+            </tr>
           </tbody>
         </table>
       </div>
