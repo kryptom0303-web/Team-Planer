@@ -42,6 +42,9 @@ export default function TeamPlanerApp() {
 
   // Arbeitszeit-Auswahl
   const [selectedZeit, setSelectedZeit] = useState('bis 16:00 Uhr');
+  
+  // Neuer State für den Wochen-Sprung
+  const [weekOffset, setWeekOffset] = useState(0);
 
   useEffect(() => {
     if (selectedMitarbeiter) {
@@ -74,8 +77,8 @@ export default function TeamPlanerApp() {
     }
 
     let title = `${selectedMitarbeiter}: ${selectedStatus} (${selectedZeit})`;
-    let calendarApi = selectInfo.view.calendar;
-    calendarApi.unselect();
+    let calendarApiCalendar = selectInfo.view.calendar;
+    letApiCalendar.unselect();
 
     let color = '#3b82f6'; // Blau für Home-Office
     if (selectedStatus === 'Urlaub') {
@@ -105,7 +108,6 @@ export default function TeamPlanerApp() {
   // Funktion zum Löschen von Events
   const handleEventClick = async (clickInfo) => {
     if (window.confirm(`Möchtest du den Eintrag "${clickInfo.event.title}" wirklich löschen?`)) {
-      
       const eventId = clickInfo.event.id;
       const parsedId = /^\d+$/.test(eventId) ? parseInt(eventId, 10) : eventId;
 
@@ -124,29 +126,49 @@ export default function TeamPlanerApp() {
     }
   };
 
-  // Hilfsfunktion zur Formatierung des Status
-  const getCellProps = (name, dayIndex) => {
+  // Berechnet die Tage (Montag bis Freitag) für die ausgewählte Woche
+  const getWeekDays = () => {
+    const today = new Date();
+    const currentDay = today.getDay();
+    const diffToMonday = currentDay === 0 ? -6 : 1 - currentDay;
+    const monday = new Date(today);
+    monday.setDate(today.getDate() + diffToMonday + (weekOffset * 7));
+    
+    const days = [];
+    for (let i = 0; i < 5; i++) {
+      const day = new Date(monday);
+      day.setDate(monday.getDate() + i);
+      days.push(day);
+    }
+    return days;
+  };
+
+  const weekDays = getWeekDays();
+
+  // Gibt den Status für einen bestimmten Mitarbeiter an einem konkreten Datum zurück
+  const getCellProps = (name, date) => {
     const event = events.find(e => {
-      const date = new Date(e.start);
-      return e.title.startsWith(name) && date.getDay() === dayIndex;
+      const eDate = new Date(e.start);
+      return e.title.startsWith(name) && 
+             eDate.getFullYear() === date.getFullYear() &&
+             eDate.getMonth() === date.getMonth() &&
+             eDate.getDate() === date.getDate();
     });
 
     if (event) {
       let text = event.title.replace(`${name}: `, '');
 
-      // Falls Urlaub oder Home-Office, soll der Zusatz nicht angezeigt werden
       if (text.includes('Urlaub') || text.includes('Home-Office')) {
         text = text.split(' (')[0]; 
       }
 
-      // Farbliche Hinterlegung
       let style = { padding: '8px', fontSize: '0.9rem', textAlign: 'center', fontWeight: 'bold' };
       if (text.includes('Büro')) {
-        style = { ...style, backgroundColor: '#dcfce7', color: '#166534' }; // Grün
+        style = { ...style, backgroundColor: '#dcfce7', color: '#166534' };
       } else if (text.includes('Home-Office')) {
-        style = { ...style, backgroundColor: '#e0e7ff', color: '#1e3a8a' }; // Blau
+        style = { ...style, backgroundColor: '#e0e7ff', color: '#1e3a8a' };
       } else if (text.includes('Urlaub')) {
-        style = { ...style, backgroundColor: '#fef9c3', color: '#854d0e' }; // Gelb
+        style = { ...style, backgroundColor: '#fef9c3', color: '#854d0e' };
       }
 
       return { text, style };
@@ -155,12 +177,17 @@ export default function TeamPlanerApp() {
     return { text: '-', style: { padding: '8px', fontSize: '0.9rem', textAlign: 'center', color: '#6b7280' } };
   };
 
-  // Hilfsfunktion: Zählt die Personen im Büro
-  const countInOffice = (dayIndex) => {
+  // Zählt die Personen im Büro für einen spezifischen Tag
+  const countInOffice = (date) => {
     let count = 0;
     events.forEach(e => {
-      const date = new Date(e.start);
-      if (date.getDay() === dayIndex && e.title.includes('Büro')) {
+      const eDate = new Date(e.start);
+      if (
+        eDate.getFullYear() === date.getFullYear() &&
+        eDate.getMonth() === date.getMonth() &&
+        eDate.getDate() === date.getDate() &&
+        e.title.includes('Büro')
+      ) {
         count++;
       }
     });
@@ -262,37 +289,68 @@ export default function TeamPlanerApp() {
 
       {/* Wochenübersicht */}
       <div style={{ marginTop: '30px', background: '#fff', padding: '15px', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
-        <h2>Wochenübersicht (Aktuelle Woche)</h2>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
+          <h2>Wochenübersicht</h2>
+          <div>
+            <button 
+              onClick={() => setWeekOffset(prev => prev - 1)}
+              style={{ padding: '6px 12px', marginRight: '8px', cursor: 'pointer', borderRadius: '4px', border: '1px solid #ccc' }}
+            >
+              ← Vorherige Woche
+            </button>
+            <button 
+              onClick={() => setWeekOffset(0)}
+              style={{ padding: '6px 12px', marginRight: '8px', cursor: 'pointer', borderRadius: '4px', border: '1px solid #ccc' }}
+            >
+              Aktuelle Woche
+            </button>
+            <button 
+              onClick={() => setWeekOffset(prev => prev + 1)}
+              style={{ padding: '6px 12px', cursor: 'pointer', borderRadius: '4px', border: '1px solid #ccc' }}
+            >
+              Nächste Woche →
+            </button>
+          </div>
+        </div>
+        <p style={{ marginTop: '-5px', color: '#6b7280' }}>
+          Anzeige: {weekDays[0].toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' })} – {weekDays[4].toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' })}
+        </p>
+
         <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
           <thead>
             <tr style={{ borderBottom: '1px solid #ccc' }}>
               <th style={{ padding: '8px' }}>Mitarbeiter</th>
-              <th style={{ padding: '8px', textAlign: 'center' }}>Montag</th>
-              <th style={{ padding: '8px', textAlign: 'center' }}>Dienstag</th>
-              <th style={{ padding: '8px', textAlign: 'center' }}>Mittwoch</th>
-              <th style={{ padding: '8px', textAlign: 'center' }}>Donnerstag</th>
-              <th style={{ padding: '8px', textAlign: 'center' }}>Freitag</th>
+              {weekDays.map((date, index) => (
+                <th key={index} style={{ padding: '8px', textAlign: 'center' }}>
+                  {['Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag'][index]}
+                  <br />
+                  <span style={{ fontSize: '0.8rem', fontWeight: 'normal', color: '#4b5563' }}>
+                    {date.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit' })}
+                  </span>
+                </th>
+              ))}
             </tr>
           </thead>
           <tbody>
             {mitarbeiterListe.map((name) => (
               <tr key={name} style={{ borderBottom: '1px solid #eee' }}>
                 <td style={{ padding: '8px', fontWeight: 'bold' }}>{name}</td>
-                <td style={getCellProps(name, 1).style}>{getCellProps(name, 1).text}</td>
-                <td style={getCellProps(name, 2).style}>{getCellProps(name, 2).text}</td>
-                <td style={getCellProps(name, 3).style}>{getCellProps(name, 3).text}</td>
-                <td style={getCellProps(name, 4).style}>{getCellProps(name, 4).text}</td>
-                <td style={getCellProps(name, 5).style}>{getCellProps(name, 5).text}</td>
+                <td style={getCellProps(name, weekDays[0]).style}>{getCellProps(name, weekDays[0]).text}</td>
+                <td style={getCellProps(name, weekDays[1]).style}>{getCellProps(name, weekDays[1]).text}</td>
+                <td style={getCellProps(name, weekDays[2]).style}>{getCellProps(name, weekDays[2]).text}</td>
+                <td style={getCellProps(name, weekDays[3]).style}>{getCellProps(name, weekDays[3]).text}</td>
+                <td style={getCellProps(name, weekDays[4]).style}>{getCellProps(name, weekDays[4]).text}</td>
               </tr>
             ))}
-            {/* Neue Zeile: Personen im Büro */}
+            
+            {/* Zeile: Personen im Büro */}
             <tr style={{ borderTop: '2px solid #ccc', fontWeight: 'bold' }}>
               <td style={{ padding: '8px', backgroundColor: '#f9fafb' }}>Personen im Büro</td>
-              <td style={{ padding: '8px', textAlign: 'center', backgroundColor: '#dcfce7', color: '#166534' }}>{countInOffice(1)}</td>
-              <td style={{ padding: '8px', textAlign: 'center', backgroundColor: '#dcfce7', color: '#166534' }}>{countInOffice(2)}</td>
-              <td style={{ padding: '8px', textAlign: 'center', backgroundColor: '#dcfce7', color: '#166534' }}>{countInOffice(3)}</td>
-              <td style={{ padding: '8px', textAlign: 'center', backgroundColor: '#dcfce7', color: '#166534' }}>{countInOffice(4)}</td>
-              <td style={{ padding: '8px', textAlign: 'center', backgroundColor: '#dcfce7', color: '#166534' }}>{countInOffice(5)}</td>
+              <td style={{ padding: '8px', textAlign: 'center', backgroundColor: '#dcfce7', color: '#166534' }}>{countInOffice(weekDays[0])}</td>
+              <td style={{ padding: '8px', textAlign: 'center', backgroundColor: '#dcfce7', color: '#166534' }}>{countInOffice(weekDays[1])}</td>
+              <td style={{ padding: '8px', textAlign: 'center', backgroundColor: '#dcfce7', color: '#166534' }}>{countInOffice(weekDays[2])}</td>
+              <td style={{ padding: '8px', textAlign: 'center', backgroundColor: '#dcfce7', color: '#166534' }}>{countInOffice(weekDays[3])}</td>
+              <td style={{ padding: '8px', textAlign: 'center', backgroundColor: '#dcfce7', color: '#166534' }}>{countInOffice(weekDays[4])}</td>
             </tr>
           </tbody>
         </table>
