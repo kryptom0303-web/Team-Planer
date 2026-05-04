@@ -20,7 +20,7 @@ export default function TeamPlanerApp() {
     'Regine'
   ]);
 
-  // Mitarbeiter-Auswahl bleibt gespeichert
+   // Mitarbeiter-Auswahl bleibt gespeichert
   const [selectedMitarbeiter, setSelectedMitarbeiter] = useState(() => {
     return localStorage.getItem('selectedMitarbeiter') || '';
   });
@@ -92,6 +92,39 @@ export default function TeamPlanerApp() {
     }
   };
 
+  // Funktion zum Löschen von Events
+  const handleEventClick = async (clickInfo) => {
+    if (window.confirm(`Möchtest du den Eintrag "${clickInfo.event.title}" wirklich löschen?`)) {
+      const { error } = await supabase
+        .from('events')
+        .delete()
+        .eq('id', clickInfo.event.id);
+
+      if (error) {
+        alert('Fehler beim Löschen: ' + error.message);
+      } else {
+        // Aus dem lokalen State entfernen
+        setEvents(events.filter(e => e.id !== clickInfo.event.id));
+        window.location.reload();
+      }
+    }
+  };
+
+  // Hilfsfunktion für die Wochenübersicht
+  const getStatusForDay = (name, dayIndex) => {
+    const event = events.find(e => {
+      const date = new Date(e.start);
+      // getDay(): 1 = Montag, 2 = Dienstag, ... 5 = Freitag
+      return e.title.startsWith(name) && date.getDay() === dayIndex;
+    });
+
+    if (event) {
+      // Entfernt den Namen aus dem Titel für eine kompaktere Anzeige
+      return event.title.replace(`${name}: `, '');
+    }
+    return '-';
+  };
+
   return (
     <div style={{ padding: '20px', fontFamily: 'sans-serif' }}>
       <h1>Team-Präsenz Planer</h1>
@@ -161,6 +194,7 @@ export default function TeamPlanerApp() {
       </div>
 
       <p>Wähle ein Datum oder einen Zeitraum im Kalender aus, um den Eintrag mit diesen Daten zu speichern.</p>
+      <p><em>Tipp: Klicke auf einen Termin im Kalender, um diesen wieder zu löschen.</em></p>
 
       {/* Kalender */}
       <div className="calendar-container">
@@ -179,6 +213,7 @@ export default function TeamPlanerApp() {
           weekends={true}
           events={events}
           select={handleDateSelect}
+          eventClick={handleEventClick} // Hier wird die Löschfunktion verknüpft
           locale="de"
         />
       </div>
@@ -201,11 +236,11 @@ export default function TeamPlanerApp() {
             {mitarbeiterListe.map((name) => (
               <tr key={name} style={{ borderBottom: '1px solid #eee' }}>
                 <td style={{ padding: '8px', fontWeight: 'bold' }}>{name}</td>
-                <td style={{ padding: '8px' }}>-</td>
-                <td style={{ padding: '8px' }}>-</td>
-                <td style={{ padding: '8px' }}>-</td>
-                <td style={{ padding: '8px' }}>-</td>
-                <td style={{ padding: '8px' }}>-</td>
+                <td style={{ padding: '8px', fontSize: '0.9rem' }}>{getStatusForDay(name, 1)}</td>
+                <td style={{ padding: '8px', fontSize: '0.9rem' }}>{getStatusForDay(name, 2)}</td>
+                <td style={{ padding: '8px', fontSize: '0.9rem' }}>{getStatusForDay(name, 3)}</td>
+                <td style={{ padding: '8px', fontSize: '0.9rem' }}>{getStatusForDay(name, 4)}</td>
+                <td style={{ padding: '8px', fontSize: '0.9rem' }}>{getStatusForDay(name, 5)}</td>
               </tr>
             ))}
           </tbody>
