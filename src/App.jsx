@@ -96,11 +96,7 @@ export default function TeamPlanerApp() {
     <div style={{ padding: '20px', fontFamily: 'sans-serif' }}>
       <h1>Team-Präsenz Planer</h1>
       
-<<<<<<< HEAD
-      {/* Auswahlbereich für den Mitarbeiter und den Status -- - -  */}
-=======
       {/* Auswahlbereich */}
->>>>>>> eff26c005363d13d8798461c1dc4da3a2ab2cb48
       <div style={{ marginBottom: '25px', display: 'flex', flexDirection: 'column', gap: '15px', maxWidth: '450px' }}>
         <div>
           <label style={{ fontWeight: 'bold', display: 'block', marginBottom: '5px' }}>
@@ -232,3 +228,4 @@ export default function TeamPlanerApp() {
     </div>
   );
 }
+
