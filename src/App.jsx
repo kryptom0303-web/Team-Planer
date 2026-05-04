@@ -17,7 +17,17 @@ export default function TeamPlanerApp() {
     'Baumi',
     'Schocki',
     'Marco',
-    'Regine'
+    'Regine',
+    'MK',
+    'BH-H',
+    'SC',
+    'ES',
+    'SB',
+    'IW',
+    'JB',
+    'JR',
+    'RP',
+    'YM'
   ]);
 
   // Mitarbeiter-Auswahl bleibt gespeichert
